@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
                                          m->tool = TOOL_ERASER;  // Select the eraser tool
                                          should_draw = 1;
                                      }
-                    if (e.key.keysym.sym == SDLK_e) {
+                    if (e.key.keysym.sym == SDLK_o) {
                                          m->tool = TOOL_ELLIPSE;  // Select the ellipse tool
                                          should_draw = 1;
                                      }
@@ -262,7 +262,14 @@ int main(int argc, char* argv[])
                         m->x = e.button.x;
                         m->y = e.button.y;
                         break;
+                        case TOOL_ELLIPSE:
+                            m->x = e.button.x;
+                                                          m->y = e.button.y;
+                                                          m->mouse_down = 1;
+                                                          should_draw = 1;
+                                                          break;
                     }
+                    
                     m->mouse_down = 1;
                     should_draw = 1;
                 }
@@ -293,9 +300,48 @@ int main(int argc, char* argv[])
                                   mage_pencil(m, m->x, m->y);
                                   break;
                                 
-                            
-                                
-                                        
+                            case TOOL_ELLIPSE:
+                                if (m->overlay != NULL) {
+                                                                  SDL_FreeSurface(m->overlay);
+                                                              }
+                                                              m->overlay = SDL_CreateRGBSurfaceWithFormat(NULL,
+                                                                                                          m->img->w,
+                                                                                                          m->img->h,
+                                                                                                          8,
+                                                                                                          SDL_PIXELFORMAT_BGRA32);
+                                                              if (m->overlay == NULL) {
+                                                                  mage_error("Failed to initialize m->overlay surface!");
+                                                              }
+
+                                                              int radius = (int) sqrt((e.motion.x - m->x) * (e.motion.x - m->x) +
+                                                                                     (e.motion.y - m->y) * (e.motion.y - m->y));
+
+                                                              int x = 0;
+                                                              int y = radius;
+                                                              int p = 1 - radius;
+
+                                                              while (x <= y) {
+                                                                  // Plot points of the circle in all octants
+                                                                  mage_pencil(m, m->x + x, m->y + y);
+                                                                  mage_pencil(m, m->x + y, m->y + x);
+                                                                  mage_pencil(m, m->x - x, m->y + y);
+                                                                  mage_pencil(m, m->x - y, m->y + x);
+                                                                  mage_pencil(m, m->x + x, m->y - y);
+                                                                  mage_pencil(m, m->x + y, m->y - x);
+                                                                  mage_pencil(m, m->x - x, m->y - y);
+                                                                  mage_pencil(m, m->x - y, m->y - x);
+
+                                                                  x++;
+                                                                  if (p < 0) {
+                                                                      p += 2 * x + 1;
+                                                                  } else {
+                                                                      y--;
+                                                                      p += 2 * (x - y) + 1;
+                                                                  }
+                                                              }
+
+                                                              should_draw = 1;
+                                                              break;
             
             
                             case TOOL_ERASER:{
