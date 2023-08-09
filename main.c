@@ -4,6 +4,9 @@
 
 #define TOOL_PENCIL 0
 #define TOOL_RECT   1
+#define TOOL_ERASER 2
+#define TOOL_ELLIPSE 3
+
 
 #define COLOR_BLACK 0xFF000000
 #define COLOR_WHITE 0xFFFFFFFF
@@ -67,8 +70,17 @@ void mage_pencil(mage_state* m, int x, int y)
     }
     /* adjust for status bar (hack!) */
     y -= 16;
+    int brush_size = 5;  // Adjust the brush size as needed
+      int half_brush = brush_size / 2;
 
-    pixels[(y*m->img->w)+x] = m->color;
+      for (int i = x - half_brush; i <= x + half_brush; i++) {
+          for (int j = y - half_brush; j <= y + half_brush; j++) {
+              if (i >= 0 && i < m->img->w && j >= 0 && j < m->img->h) {
+                  pixels[(j * m->img->w) + i] = m->color;
+              }
+          }
+      }
+
     if (SDL_MUSTLOCK(m->img)) {
         SDL_UnlockSurface(m->img);
     }
@@ -224,6 +236,15 @@ int main(int argc, char* argv[])
                     m->color = COLOR_BLUE;
                     should_draw = 1;
                 }
+                    if (e.key.keysym.sym == SDLK_e) {
+                        m->color=COLOR_WHITE;
+                                         m->tool = TOOL_ERASER;  // Select the eraser tool
+                                         should_draw = 1;
+                                     }
+                    if (e.key.keysym.sym == SDLK_e) {
+                                         m->tool = TOOL_ELLIPSE;  // Select the ellipse tool
+                                         should_draw = 1;
+                                     }
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 if (e.button.button == SDL_BUTTON_LEFT) {
@@ -231,6 +252,12 @@ int main(int argc, char* argv[])
                     case TOOL_PENCIL:
                         mage_pencil(m, e.button.x, e.button.y);
                         break;
+                        case TOOL_ERASER:
+                                                   m->x = e.button.x;
+                                                   m->y = e.button.y;
+                                                   m->mouse_down = 1;
+                                                   should_draw = 1;
+                                                   break;
                     case TOOL_RECT:
                         m->x = e.button.x;
                         m->y = e.button.y;
@@ -257,29 +284,58 @@ int main(int argc, char* argv[])
                 should_draw = 1;
                 break;
             case SDL_MOUSEMOTION:
-                if (m->mouse_down && e.button.button == SDL_BUTTON_LEFT) {
-                    switch (m->tool) {
-                    case TOOL_PENCIL:
-                        mage_pencil(m, e.button.x, e.button.y);
-                        break;
-                    case TOOL_RECT: {
-                        /* adjust for status bar (hack!) */
-                        int motion_x = e.motion.x;
-                        int motion_y = e.motion.y-16;
-                        int xx = m->x;
-                        int yy = m->y-16;
-                        SDL_Rect rect;
-                        rect.x = xx<motion_x?xx:motion_x;
-                        rect.y = yy<motion_y?yy:motion_y;
-                        rect.w = xx<motion_x?motion_x-xx:xx-motion_x;
-                        rect.h = yy<motion_y?motion_y-yy:yy-motion_y;
-                        SDL_FillRect(m->overlay, &rect, m->color);
-                        break;
+                    if (m->mouse_down && e.button.button == SDL_BUTTON_LEFT) {
+                        switch (m->tool) {
+                       
+                            case TOOL_PENCIL:
+                                  m->x = e.button.x;
+                                  m->y = e.button.y;
+                                  mage_pencil(m, m->x, m->y);
+                                  break;
+                                
+                            
+                                
+                                        
+            
+            
+                            case TOOL_ERASER:{
+                                                           int dx = abs(e.motion.x - m->x);
+                                                           int dy = abs(e.motion.y - m->y);
+                                                           int steps = (dx > dy) ? dx : dy;
+                                                           float x_step = (float)(e.motion.x - m->x) / steps;
+                                                           float y_step = (float)(e.motion.y - m->y) / steps;
+
+                                                           for (int i = 0; i < steps; i++) {
+                                                               int erase_x = m->x + (int)(i * x_step);
+                                                               int erase_y = m->y + (int)(i * y_step);
+                                                               mage_pencil(m, erase_x, erase_y );  // Erase by setting to white color
+                                                           }
+
+                                                           m->x = e.motion.x;
+                                                           m->y = e.motion.y;
+                                                           break;
+                                                       }
+                                                       // ...
+                                                
+                           
+                        case TOOL_RECT: {
+                            /* Adjust for status bar (hack!) */
+                            int motion_x = e.motion.x;
+                            int motion_y = e.motion.y - 16;
+                            int xx = m->x;
+                            int yy = m->y - 16;
+                            SDL_Rect rect;
+                            rect.x = xx < motion_x ? xx : motion_x;
+                            rect.y = yy < motion_y ? yy : motion_y;
+                            rect.w = xx < motion_x ? motion_x - xx : xx - motion_x;
+                            rect.h = yy < motion_y ? motion_y - yy : yy - motion_y;
+                            SDL_FillRect(m->overlay, &rect, m->color);
+                            break;
+                        }
+                        }
+                        should_draw = 1;
                     }
-                    }
-                    should_draw = 1;
-                }
-                break;
+                    break;
             default:
                 break;
             }
