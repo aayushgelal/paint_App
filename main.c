@@ -112,11 +112,24 @@ void mage_render(mage_state* m)
     /* creen clear and status bar */
     SDL_Rect rect;
     SDL_FillRect(m->screen, NULL, COLOR_BLACK);
+
     rect.w = 16;
     rect.h = 16;
-    rect.x = 0;
+    rect.x=-rect.w;
     rect.y = 0;
-    SDL_FillRect(m->screen, &rect, m->color);
+
+    uint32_t color[]={COLOR_RED,COLOR_BLUE,COLOR_BLACK,COLOR_GREEN};
+   int i=0;
+   do{
+       rect.x = rect.x + rect.w; // Increment by the width of the rectangle
+
+        SDL_FillRect(m->screen, &rect, color[i]);
+       i++;
+
+    }while(i<4);
+    SDL_UpdateWindowSurface(m->win);
+
+    rect.x=0;
     rect.y = -16;
 
     rect.w = m->img->w;
@@ -178,6 +191,9 @@ int main(int argc, char* argv[])
                                              8,
                                              SDL_PIXELFORMAT_BGRA32);
         SDL_FillRect(m->img, NULL, COLOR_WHITE);
+      
+
+
         if (m->img == NULL) {
             mage_error("Failed to initialize image surface!");
         }
